@@ -20,6 +20,7 @@
 !cfg/Ball.cfg
 !cfg/br_*.cfg
 
+runs/*
 data/*
 !data/samples/zidane.jpg
 !data/samples/bus.jpg
@@ -33,6 +34,7 @@ data/*
 !data/5k.shapes
 !data/5k.txt
 !data/br_*
+!data/*.sh
 
 pycocotools/*
 results*.txt

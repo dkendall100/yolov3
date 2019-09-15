@@ -2,6 +2,7 @@ import torch.nn.functional as F
 
 from utils.parse_config import *
 from utils.utils import *
+from utils.google_utils import *
 
 ONNX_EXPORT = False
 
@@ -88,9 +89,9 @@ def create_modules(module_defs, img_size, arc):
                 elif arc == 'Fdefault':  # Focal default no pw (28 cls, 21 obj, no pw)
                     b = [-2.1, -1.8]
                 elif arc == 'uFBCE':  # unified FocalBCE (5120 obj, 80 classes)
-                    b = [0, -3.5]
+                    b = [0, -6.5]
                 elif arc == 'uFCE':  # unified FocalCE (64 cls, 1 background + 80 classes)
-                    b = [7, -0.1]
+                    b = [7.7, -1.1]
 
                 bias = module_list[-1][0].bias.view(len(mask), -1)  # 255 to 3x85
                 bias[:, 4] += b[0] - bias[:, 4].mean()  # obj
@@ -296,12 +297,18 @@ def load_darknet_weights(self, weights, cutoff=-1):
     # Try to download weights if not available locally
     msg = weights + ' missing, download from https://drive.google.com/drive/folders/1uxgUBemJVw9wZsdpboYbzUN4bcRhsuAI'
     if not os.path.isfile(weights):
-        try:
-            url = 'https://pjreddie.com/media/files/' + file
-            print('Downloading ' + url)
-            os.system('curl -f ' + url + ' -o ' + weights)
-        except IOError:
-            print(msg)
+        if file == 'yolov3-spp.weights':
+            gdrive_download(id='1oPCHKsM2JpM-zgyepQciGli9X0MTsJCO', name=weights)
+        elif file == 'darknet53.conv.74':
+            gdrive_download(id='18xqvs_uwAqfTXp-LJCYLYNHBOcrwbrp0', name=weights)
+        else:
+            try:  # download from pjreddie.com
+                url = 'https://pjreddie.com/media/files/' + file
+                print('Downloading ' + url)
+                os.system('curl -f ' + url + ' -o ' + weights)
+            except IOError:
+                print(msg)
+                os.system('rm ' + weights)  # remove partial downloads
     assert os.path.exists(weights), msg  # download missing weights from Google Drive
 
     # Establish cutoffs

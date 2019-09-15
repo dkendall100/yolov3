@@ -1,3 +1,5 @@
+import os
+
 import torch
 
 
@@ -6,18 +8,26 @@ def init_seeds(seed=0):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    # torch.backends.cudnn.deterministic = True  # https://pytorch.org/docs/stable/notes/randomness.html
+
+    # Remove randomness (may be slower on Tesla GPUs) # https://pytorch.org/docs/stable/notes/randomness.html
+    if seed == 0:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
 
-def select_device(force_cpu=False, apex=False):
+def select_device(device=None, apex=False):
+    if device == 'cpu':
+        pass
+    elif device:  # Set environment variable if device is specified
+        os.environ['CUDA_VISIBLE_DEVICES'] = device
+
     # apex if mixed precision training https://github.com/NVIDIA/apex
-    cuda = False if force_cpu else torch.cuda.is_available()
+    cuda = False if device == 'cpu' else torch.cuda.is_available()
     device = torch.device('cuda:0' if cuda else 'cpu')
 
     if not cuda:
         print('Using CPU')
     if cuda:
-        torch.backends.cudnn.benchmark = True  # set False for reproducible results
         c = 1024 ** 2  # bytes to MB
         ng = torch.cuda.device_count()
         x = [torch.cuda.get_device_properties(i) for i in range(ng)]

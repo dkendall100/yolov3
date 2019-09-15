@@ -52,7 +52,8 @@ Our Jupyter [notebook](https://colab.research.google.com/github/ultralytics/yolo
 **Resume Training:** `python3 train.py --resume` to resume training from `weights/last.pt`.
 
 **Plot Training:** `from utils import utils; utils.plot_results()` plots training results from `coco_16img.data`, `coco_64img.data`, 2 example datasets available in the `data/` folder, which train and test on the first 16 and 64 images of the COCO2014-trainval dataset.
-![image](https://user-images.githubusercontent.com/26833433/63258271-fe9d5300-c27b-11e9-9a15-95038daf4438.png)
+
+<img src="https://user-images.githubusercontent.com/26833433/63258271-fe9d5300-c27b-11e9-9a15-95038daf4438.png" width="900">
 
 ## Image Augmentation
 
@@ -68,7 +69,7 @@ Reflection | 50% probability (horizontal-only)
 H**S**V Saturation | +/- 50%
 HS**V** Intensity | +/- 50%
 
-<img src="https://user-images.githubusercontent.com/26833433/61579359-507b7d80-ab04-11e9-8a2a-bd6f59bbdfb4.jpg">
+<img src="https://user-images.githubusercontent.com/26833433/61579359-507b7d80-ab04-11e9-8a2a-bd6f59bbdfb4.jpg" width="900">
 
 ## Speed
 
@@ -86,8 +87,8 @@ T4 | 64 (32x2) | 40  | 49 min  | $0.29
 T4 x2 | 64 (64x1) | 61  | 32 min  | $0.36
 V100 | 64 (32x2) | 115 | 17 min | $0.24
 V100 x2 | 64 (64x1) | 150 | 13 min | $0.36
-2080Ti | 64 (32x2) | 69  | 28 min  | - 
-
+2080Ti | 64 (32x2) | 81  | 24 min  | - 
+2080Ti x2 | 64 (64x1) | 140  | 14 min  | - 
 
 # Inference
 

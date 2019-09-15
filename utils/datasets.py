@@ -3,7 +3,9 @@ import math
 import os
 import random
 import shutil
+import time
 from pathlib import Path
+from threading import Thread
 
 import cv2
 import numpy as np
@@ -33,7 +35,7 @@ def exif_size(img):
         elif rotation == 8:  # rotation 90
             s = (s[1], s[0])
     except:
-        None
+        pass
 
     return s
 
@@ -145,7 +147,8 @@ class LoadWebcam:  # for inference
 
     def __next__(self):
         self.count += 1
-        if cv2.waitKey(1) == 27:  # esc to quit
+        if cv2.waitKey(1) == ord('q'):  # q to quit
+            self.cap.release()
             cv2.destroyAllWindows()
             raise StopIteration
 
@@ -165,7 +168,7 @@ class LoadWebcam:  # for inference
 
         # Print
         assert ret_val, 'Camera Error %s' % self.pipe
-        img_path = 'webcam_%g.jpg' % self.count
+        img_path = 'webcam.jpg'
         print('webcam %g: ' % self.count, end='')
 
         # Padded resize
@@ -180,6 +183,65 @@ class LoadWebcam:  # for inference
 
     def __len__(self):
         return 0
+
+
+class LoadStreams:  # multiple IP or RTSP cameras
+    def __init__(self, path='streams.txt', img_size=416, half=False):
+        self.img_size = img_size
+        self.half = half  # half precision fp16 images
+        with open(path, 'r') as f:
+            sources = [x.strip() for x in f.read().splitlines() if len(x.strip())]
+
+        n = len(sources)
+        self.imgs = [None] * n
+        self.sources = sources
+        for i, s in enumerate(sources):
+            # Start the thread to read frames from the video stream
+            print('%g/%g: %s... ' % (i + 1, n, s), end='')
+            cap = cv2.VideoCapture(0 if s == '0' else s)
+            assert cap.isOpened(), 'Failed to open %s' % s
+            w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            fps = cap.get(cv2.CAP_PROP_FPS) % 100
+            print(' success (%gx%g at %.2f FPS).' % (w, h, fps))
+            thread = Thread(target=self.update, args=([i, cap]), daemon=True)
+            thread.start()
+
+        print('')  # newline
+        time.sleep(0.5)
+
+    def update(self, index, cap):
+        # Read next stream frame in a daemon thread
+        while cap.isOpened():
+            _, self.imgs[index] = cap.read()
+        time.sleep(0.030)  # 33.3 FPS to keep buffer empty
+
+    def __iter__(self):
+        self.count = -1
+        return self
+
+    def __next__(self):
+        self.count += 1
+        img0 = self.imgs.copy()
+        if cv2.waitKey(1) == ord('q'):  # q to quit
+            cv2.destroyAllWindows()
+            raise StopIteration
+
+        # Letterbox
+        img = [letterbox(x, new_shape=self.img_size)[0] for x in img0]
+
+        # Stack
+        img = np.stack(img, 0)
+
+        # Normalize RGB
+        img = img[:, :, :, ::-1].transpose(0, 3, 1, 2)  # BGR to RGB
+        img = np.ascontiguousarray(img, dtype=np.float16 if self.half else np.float32)  # uint8 to fp16/fp32
+        img /= 255.0  # 0 - 255 to 0.0 - 1.0
+
+        return self.sources, img, img0, None
+
+    def __len__(self):
+        return 0  # 1E12 frames = 32 streams at 30 FPS for 30 years
 
 
 class LoadImagesAndLabels(Dataset):  # for training/testing

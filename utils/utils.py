@@ -88,6 +88,9 @@ def coco_class_weights():  # frequency of each class in coco train2014
          1877, 17630, 4337, 4624, 1075, 3468, 135, 1380]
     weights = 1 / torch.Tensor(n)
     weights /= weights.sum()
+    # with open('data/coco.names', 'r') as f:
+    #     for k, v in zip(f.read().splitlines(), n):
+    #         print('%20s: %g' % (k, v))
     return weights
 
 
@@ -291,12 +294,12 @@ def wh_iou(box1, box2):
 class FocalLoss(nn.Module):
     # Wraps focal loss around existing loss_fcn() https://arxiv.org/pdf/1708.02002.pdf
     # i.e. criteria = FocalLoss(nn.BCEWithLogitsLoss(), gamma=2.5)
-    def __init__(self, loss_fcn, alpha=1, gamma=0.5, reduction='mean'):
+    def __init__(self, loss_fcn, gamma=0.5, alpha=1, reduction='mean'):
         super(FocalLoss, self).__init__()
         loss_fcn.reduction = 'none'  # required to apply FL to each element
         self.loss_fcn = loss_fcn
-        self.alpha = alpha
         self.gamma = gamma
+        self.alpha = alpha
         self.reduction = reduction
 
     def forward(self, input, target):
@@ -325,7 +328,8 @@ def compute_loss(p, targets, model):  # predictions, targets, model
     CE = nn.CrossEntropyLoss()  # weight=model.class_weights
 
     if 'F' in arc:  # add focal loss
-        BCEcls, BCEobj, BCE, CE = FocalLoss(BCEcls), FocalLoss(BCEobj), FocalLoss(BCE), FocalLoss(CE)
+        g = h['fl_gamma']
+        BCEcls, BCEobj, BCE, CE = FocalLoss(BCEcls, g), FocalLoss(BCEobj, g), FocalLoss(BCE, g), FocalLoss(CE, g)
 
     # Compute losses
     for i, pi in enumerate(p):  # layer index, layer predictions
@@ -556,8 +560,12 @@ def get_yolo_layers(model):
 def print_model_biases(model):
     # prints the bias neurons preceding each yolo layer
     print('\nModel Bias Summary (per output layer):')
+    multi_gpu = type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel)
     for l in model.yolo_layers:  # print pretrained biases
-        b = model.module_list[l - 1][0].bias.view(3, -1)  # bias 3x85
+        if multi_gpu:
+            b = model.module.module_list[l - 1][0].bias.view(3, -1)  # bias 3x85
+        else:
+            b = model.module_list[l - 1][0].bias.view(3, -1)  # bias 3x85
         print('regression: %5.2f+/-%-5.2f ' % (b[:, :4].mean(), b[:, :4].std()),
               'objectness: %5.2f+/-%-5.2f ' % (b[:, 4].mean(), b[:, 4].std()),
               'classification: %5.2f+/-%-5.2f' % (b[:, 5:].mean(), b[:, 5:].std()))
@@ -608,8 +616,7 @@ def select_best_evolve(path='evolve*.txt'):  # from utils.utils import *; select
     # Find best evolved mutation
     for file in sorted(glob.glob(path)):
         x = np.loadtxt(file, dtype=np.float32, ndmin=2)
-        fitness = x[:, 2] * 0.5 + x[:, 3] * 0.5  # weighted mAP and F1 combination
-        print(file, x[fitness.argmax()])
+        print(file, x[fitness(x).argmax()])
 
 
 def coco_single_class_labels(path='../coco/labels/train2014/', label_class=43):
@@ -688,7 +695,7 @@ def print_mutation(hyp, results, bucket=''):
 
 def fitness(x):
     # Returns fitness (for use with results.txt or evolve.txt)
-    return 0.50 * x[:, 2] + 0.50 * x[:, 3]  # fitness = 0.5 * mAP + 0.5 * F1
+    return x[:, 2] * 0.8 + x[:, 3] * 0.2  # weighted mAP and F1 combination
 
 
 # Plotting functions ---------------------------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 classes= 2
-train  = /home/dkendall/HDD/sdesign_data/images/custom_annotations/batch_0/dustin_transformed/train.txt
-valid  = /home/dkendall/HDD/sdesign_data/images/custom_annotations/batch_0/dustin/train.txt
+train  = /home/dkendall/HDD/sdesign_data/image_data/custom_annotations/test_set1/train.txt
+valid  = /home/dkendall/HDD/sdesign_data/image_data/custom_annotations/test_set1/test.txt
 names =  data/br_Roulette.names
 backup = /home/dkendall/HDD/sdesign_data/backup_weights/

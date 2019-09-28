@@ -6,20 +6,33 @@ from utils.datasets import *
 from utils.utils import *
 
 
-def detect(save_txt=False, save_img=False, stream_img=False):
-    img_size = (320, 192) if ONNX_EXPORT else opt.img_size  # (320, 192) or (416, 256) or (608, 352) for (height, width)
-    out, source, weights, half = opt.output, opt.source, opt.weights, opt.half
+def detect(cfg="cfg/yolo.cfg",
+           data="cfg/coco.data",
+           weights="weights/yolov3-spp.pt",
+           source='0',
+           out="output",
+           init_img_size="416",
+           conf_thres=0.5,
+           nms_thres=0.5,
+           fourcc='mp4v',
+           half=False,
+           device='',
+           save_txt=False,
+           save_img=False,
+           stream_img=False,
+           ):
+    img_size = (320, 192) if ONNX_EXPORT else init_img_size  # (320, 192) or (416, 256) or (608, 352) for (height, width)
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     streams = 'streams' in source and source.endswith('.txt')
 
     # Initialize
-    device = torch_utils.select_device(device='cpu' if ONNX_EXPORT else opt.device)
+    device = torch_utils.select_device(device='cpu' if ONNX_EXPORT else device)
     if os.path.exists(out):
         shutil.rmtree(out)  # delete output folder
     os.makedirs(out)  # make new output folder
 
     # Initialize model
-    model = Darknet(opt.cfg, img_size)
+    model = Darknet(cfg, img_size)
 
     # Load weights
     if weights.endswith('.pt'):  # pytorch format
@@ -58,7 +71,7 @@ def detect(save_txt=False, save_img=False, stream_img=False):
         dataset = LoadImages(source, img_size=img_size, half=half)
 
     # Get classes and colors
-    classes = load_classes(parse_data_cfg(opt.data)['names'])
+    classes = load_classes(parse_data_cfg(data)['names'])
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))]
 
     # Run inference
@@ -72,7 +85,7 @@ def detect(save_txt=False, save_img=False, stream_img=False):
             img = img.unsqueeze(0)
         pred, _ = model(img)
 
-        for i, det in enumerate(non_max_suppression(pred, opt.conf_thres, opt.nms_thres)):  # detections per image
+        for i, det in enumerate(non_max_suppression(pred, conf_thres, nms_thres)):  # detections per image
             if streams:  # batch_size > 1
                 p, s, im0 = path[i], '%g: ' % i, im0s[i]
             else:
@@ -118,7 +131,7 @@ def detect(save_txt=False, save_img=False, stream_img=False):
                         fps = vid_cap.get(cv2.CAP_PROP_FPS)
                         w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                         h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                        vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*opt.fourcc), fps, (w, h))
+                        vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
                     vid_writer.write(im0)
 
     if save_txt or save_img:
@@ -142,8 +155,25 @@ if __name__ == '__main__':
     parser.add_argument('--fourcc', type=str, default='mp4v', help='output video codec (verify ffmpeg support)')
     parser.add_argument('--half', action='store_true', help='half precision FP16 inference')
     parser.add_argument('--device', default='', help='device id (i.e. 0 or 0,1) or cpu')
+    parser.add_argument('--save-txt', action='store_true', help='saves text file of position data in output folder')
+    parser.add_argument('--save-img', action='store_true', help='saves images to output file')
+    parser.add_argument('--stream-img', action='store_true', help='streams images as they go through detection')
     opt = parser.parse_args()
     print(opt)
 
     with torch.no_grad():
-        detect()
+        detect(cfg=opt.cfg,
+                   data=opt.data,
+                   weights=opt.weights,
+                   source=opt.source,
+                   out=opt.output,
+                   init_img_size=opt.img_size,
+                   conf_thres=opt.conf_thres,
+                   nms_thres=opt.nms_thres,
+                   fourcc=opt.fourcc,
+                   half=opt.half,
+                   device='',
+                   save_txt=opt.save_txt,
+                   save_img=opt.save_img,
+                   stream_img=opt.stream_img,
+                   )

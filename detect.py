@@ -1,6 +1,7 @@
 import argparse
 from sys import platform
-
+import json
+import operator
 from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
@@ -102,15 +103,27 @@ def detect(cfg="cfg/yolo.cfg",
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += '%g %ss, ' % (n, classes[int(c)])  # add to string
 
+                frame_detections = []
                 # Write results
                 for *xyxy, conf, _, cls in det:
-                    if save_txt:  # Write to file
-                        with open(save_path + '.txt', 'a') as file:
-                            file.write(('%g ' * 6 + '\n') % (*xyxy, cls, conf))
+                    object_detection = {
+                        "cls": int(cls),
+                        "cnf": float(conf),
+                        "x1":int(xyxy[0]),
+                        "y1":int(xyxy[1]),
+                        "x2":int(xyxy[2]),
+                        "y2":int(xyxy[3]),
 
+                    }
+                    frame_detections.append(object_detection)
                     if save_img or stream_img:  # Add bbox to image
                         label = '%s %.2f' % (classes[int(cls)], conf)
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
+
+                frame_detections.sort(key=operator.itemgetter("cls","cnf"))
+                if save_txt:  # Write to file
+                    with open(save_path + '.txt', 'a') as file:
+                        file.write(json.dumps(frame_detections,separators=(',',':'))+"\n")
 
             print('%sDone. (%.3fs)' % (s, time.time() - t))
 

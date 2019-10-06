@@ -94,6 +94,7 @@ def detect(cfg="cfg/yolo.cfg",
 
             save_path = str(Path(out) / Path(p).name)
             s += '%gx%g ' % img.shape[2:]  # print string
+            frame_detections = []
             if det is not None and len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -103,7 +104,6 @@ def detect(cfg="cfg/yolo.cfg",
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += '%g %ss, ' % (n, classes[int(c)])  # add to string
 
-                frame_detections = []
                 # Write results
                 for *xyxy, conf, _, cls in det:
                     object_detection = {
@@ -123,7 +123,11 @@ def detect(cfg="cfg/yolo.cfg",
                 frame_detections.sort(key=operator.itemgetter("cls","cnf"))
                 if save_txt:  # Write to file
                     with open(save_path + '.txt', 'a') as file:
-                        file.write(json.dumps(frame_detections,separators=(',',':'))+"\n")
+                        file.write(json.dumps(frame_detections,separators=(',',':'))+ "\n")
+            else:
+                if save_txt:
+                    with open(save_path + '.txt', 'a') as file:
+                        file.write(json.dumps(frame_detections, separators=(',', ':')) + "\n")
 
             print('%sDone. (%.3fs)' % (s, time.time() - t))
 

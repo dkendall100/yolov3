@@ -17,9 +17,11 @@
 
 *.cfg
 !cfg/yolov3*.cfg
+!cfg/roulette3.cfg
 
 runs/*
 data/*
+!labels
 !data/samples/zidane.jpg
 !data/samples/bus.jpg
 !data/coco.names
@@ -32,6 +34,10 @@ data/*
 !data/5k.shapes
 !data/5k.txt
 !data/*.sh
+!data/test.txt
+!data/train.txt
+!data/roulette.data
+!data/roulette.names
 
 pycocotools/*
 results*.txt

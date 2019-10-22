@@ -16,7 +16,7 @@ except:
     mixed_precision = False  # not installed
 
 # Hyperparameters (j-series, 50.5 mAP yolov3-320) evolved by @ktian08 https://github.com/ultralytics/yolov3/issues/310
-hyp = {'giou': 1,  # giou loss gain
+hyp = {'giou': 1.582,  # giou loss gain
        'cls': 27.76,  # cls loss gain  (CE=~1.0, uCE=~20)
        'cls_pw': 1.446,  # cls BCELoss positive_weight
        'obj': 21.35,  # obj loss gain (*=80 for uBCE with 80 classes)

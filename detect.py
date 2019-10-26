@@ -109,11 +109,8 @@ def detect(cfg="cfg/yolo.cfg",
                     object_detection = {
                         "cls": int(cls),
                         "cnf": float(conf),
-                        "x1":int(xyxy[0]),
-                        "y1":int(xyxy[1]),
-                        "x2":int(xyxy[2]),
-                        "y2":int(xyxy[3]),
-
+                        "x": (int(xyxy[0])+int(xyxy[2]))/2,
+                        "y": (int(xyxy[1])+int(xyxy[3]))/2,
                     }
                     frame_detections.append(object_detection)
                     if save_img or stream_img:  # Add bbox to image

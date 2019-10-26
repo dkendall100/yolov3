@@ -1,0 +1,5 @@
+classes= 2
+train  = /home/dkendall/HDD/sdesign_data/image_data/test_set1/train.txt
+valid  = /home/dkendall/HDD/sdesign_data/image_data/test_set1/test.txt
+names =  data/br_Roulette.names
+backup = /home/dkendall/HDD/sdesign_data/backup_weights/tiny3l_2class/

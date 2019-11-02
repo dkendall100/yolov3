@@ -108,7 +108,7 @@ def detect(cfg="cfg/yolo.cfg",
                 for *xyxy, conf, _, cls in det:
                     object_detection = {
                         "cls": int(cls),
-                        "cnf": float(conf),
+                        "cnf": '%.2f' % float(conf),
                         "x": (int(xyxy[0])+int(xyxy[2]))/2,
                         "y": (int(xyxy[1])+int(xyxy[3]))/2,
                     }

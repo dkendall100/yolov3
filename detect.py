@@ -5,6 +5,9 @@ import operator
 from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
+from pv2sv import StateVector
+from predict.Models import Prediction
+import cv2
 
 
 def detect(cfg="cfg/yolo.cfg",
@@ -21,10 +24,20 @@ def detect(cfg="cfg/yolo.cfg",
            save_txt=False,
            save_img=False,
            stream_img=False,
+           predict=False,
+           x_center=567,
+           y_center=567,
+           DT=1/100,
+
+
            ):
     img_size = (320, 192) if ONNX_EXPORT else init_img_size  # (320, 192) or (416, 256) or (608, 352) for (height, width)
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     streams = 'streams' in source and source.endswith('.txt')
+    state_tracker = StateVector(x_center, y_center, DT)
+    final_tensor = None
+    final_pred = None
+    predictor = Prediction()
 
     # Initialize
     device = torch_utils.select_device(device='cpu' if ONNX_EXPORT else device)
@@ -117,10 +130,26 @@ def detect(cfg="cfg/yolo.cfg",
                         label = '%s %.2f' % (classes[int(cls)], conf)
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
 
-                frame_detections.sort(key=operator.itemgetter("cls","cnf"))
+                frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
+                if final_tensor is None:
+                    final_tensor = state_tracker.get_tensor(frame_detections)
+                    # TODO add model here to output final prediction tensor and print to the image
+
+                if final_tensor is not None:
+                    if final_pred is None:
+                        final_pred = predictor(final_tensor)
+                    else:
+                        if float(final_pred)<0.5:
+                            cv2.putText(im0, "Bet 0-1", (250, 250), 0, 2, [225, 255, 255], thickness=3,
+                                    lineType=cv2.LINE_AA)
+                        else:
+                            cv2.putText(im0, "Bet 00-2", (250, 250), 0, 2, [225, 255, 255], thickness=3,
+                                        lineType=cv2.LINE_AA)
+
+
                 if save_txt:  # Write to file
                     with open(save_path + '.txt', 'a') as file:
-                        file.write(json.dumps(frame_detections,separators=(',',':'))+ "\n")
+                        file.write(json.dumps(frame_detections, separators=(',', ':')) + "\n")
             else:
                 if save_txt:
                     with open(save_path + '.txt', 'a') as file:
@@ -172,6 +201,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-txt', action='store_true', help='saves text file of position data in output folder')
     parser.add_argument('--save-img', action='store_true', help='saves images to output file')
     parser.add_argument('--stream-img', action='store_true', help='streams images as they go through detection')
+    parser.add_argument('--predict', action='store_true', help='suggests half of wheel to bet on')
     opt = parser.parse_args()
     print(opt)
 
@@ -190,4 +220,6 @@ if __name__ == '__main__':
                    save_txt=opt.save_txt,
                    save_img=opt.save_img,
                    stream_img=opt.stream_img,
+                    predict=opt.predict,
+
                    )

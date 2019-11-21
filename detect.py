@@ -6,7 +6,7 @@ from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
 from pv2sv import StateVector
-from predict.Models import Prediction
+from predict.Models import AnodePrediction
 import cv2
 
 
@@ -41,7 +41,7 @@ def detect(cfg="cfg/yolo.cfg",
             self.state_tracker = StateVector(x_center, y_center, DT)
             self.final_tensor = None
             self.final_pred = None
-            self.predictor = Prediction()
+            self.predictor = AnodePrediction('first_run.pd')
 
         def predict_from_state(self):
             if self.final_tensor is None:
@@ -219,6 +219,9 @@ if __name__ == '__main__':
     parser.add_argument('--save-img', action='store_true', help='saves images to output file')
     parser.add_argument('--stream-img', action='store_true', help='streams images as they go through detection')
     parser.add_argument('--predict', action='store_true', help='suggests half of wheel to bet on')
+    parser.add_argument('--xcenter', type=int, help='X center in pixels of the video stream')
+    parser.add_argument('--ycenter', type=int, help='Y Center in pixels of the video stream')
+    parser.add_argument('--DT', type=float, help='Time step between frames (1/fps)')
     opt = parser.parse_args()
     print(opt)
 
@@ -238,5 +241,8 @@ if __name__ == '__main__':
                    save_img=opt.save_img,
                    stream_img=opt.stream_img,
                    predict=opt.predict,
+                    x_center=opt.xcenter,
+               y_center=opt.ycenter,
+               DT=opt.DT
 
                    )

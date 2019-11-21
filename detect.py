@@ -34,10 +34,41 @@ def detect(cfg="cfg/yolo.cfg",
     img_size = (320, 192) if ONNX_EXPORT else init_img_size  # (320, 192) or (416, 256) or (608, 352) for (height, width)
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     streams = 'streams' in source and source.endswith('.txt')
-    state_tracker = StateVector(x_center, y_center, DT)
-    final_tensor = None
-    final_pred = None
-    predictor = Prediction()
+    callback_predictor = None
+
+    class PredHolder:
+        def __init__(self):
+            self.state_tracker = StateVector(x_center, y_center, DT)
+            self.final_tensor = None
+            self.final_pred = None
+            self.predictor = Prediction()
+
+        def predict_from_state(self):
+            if self.final_tensor is None:
+                self.final_tensor = self.state_tracker.get_tensor(frame_detections)
+                # TODO add model here to output final prediction tensor and print to the image
+
+            if self.final_tensor is not None:
+                if self.final_pred is None:
+                    self.final_pred = self.predictor(self.final_tensor)
+                else:
+                    if float(self.final_pred) < 0.5:
+                        cv2.putText(im0, "Bet 0-1", (250, 250), 0, 2, [225, 255, 255], thickness=3,
+                                    lineType=cv2.LINE_AA)
+                    else:
+                        cv2.putText(im0, "Bet 00-2", (250, 250), 0, 2, [225, 255, 255], thickness=3,
+                                    lineType=cv2.LINE_AA)
+
+        def blank(self):
+            pass
+
+    pred_holder = PredHolder()
+
+    if predict:
+        callback_predictor = pred_holder.predict_from_state
+    else:
+        callback_predictor = pred_holder.blank
+
 
     # Initialize
     device = torch_utils.select_device(device='cpu' if ONNX_EXPORT else device)
@@ -131,21 +162,7 @@ def detect(cfg="cfg/yolo.cfg",
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
 
                 frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
-                if final_tensor is None:
-                    final_tensor = state_tracker.get_tensor(frame_detections)
-                    # TODO add model here to output final prediction tensor and print to the image
-
-                if final_tensor is not None:
-                    if final_pred is None:
-                        final_pred = predictor(final_tensor)
-                    else:
-                        if float(final_pred)<0.5:
-                            cv2.putText(im0, "Bet 0-1", (250, 250), 0, 2, [225, 255, 255], thickness=3,
-                                    lineType=cv2.LINE_AA)
-                        else:
-                            cv2.putText(im0, "Bet 00-2", (250, 250), 0, 2, [225, 255, 255], thickness=3,
-                                        lineType=cv2.LINE_AA)
-
+                callback_predictor()
 
                 if save_txt:  # Write to file
                     with open(save_path + '.txt', 'a') as file:
@@ -220,6 +237,6 @@ if __name__ == '__main__':
                    save_txt=opt.save_txt,
                    save_img=opt.save_img,
                    stream_img=opt.stream_img,
-                    predict=opt.predict,
+                   predict=opt.predict,
 
                    )

@@ -65,7 +65,7 @@ class StateVector:
             self.i = self.i + 1
 
         if len(frame_state_vector) == 2:
-            return torch.tensor([frame_state_vector[0]['r'], frame_state_vector[0]['theta'], frame_state_vector[0]['w'], frame_state_vector[0]['a'], frame_state_vector[1]['r'], frame_state_vector[1]['theta'], frame_state_vector[1]['w'], frame_state_vector[1]['a']])
+            return torch.tensor([[frame_state_vector[0]['theta'], frame_state_vector[0]['w'], frame_state_vector[1]['theta'], frame_state_vector[1]['w']]]).to(torch.device('cuda'))
         else:
             return None
 

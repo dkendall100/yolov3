@@ -6,7 +6,7 @@ from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
 from pv2sv import StateVector
-from predict.Models import AnodePrediction
+from predict.Models import AnodePrediction, ConvAnodePrediction, ReducedAnodePrediction
 import cv2
 
 
@@ -41,23 +41,34 @@ def detect(cfg="cfg/yolo.cfg",
             self.state_tracker = StateVector(x_center, y_center, DT)
             self.final_tensor = None
             self.final_pred = None
-            self.predictor = AnodePrediction('first_run.pd')
+            self.predictor = ReducedAnodePrediction('../predict/reduced.pd')
+            self.over = 1
+            self.under = 1
 
         def predict_from_state(self):
-            if self.final_tensor is None:
-                self.final_tensor = self.state_tracker.get_tensor(frame_detections)
+
+            self.final_tensor = self.state_tracker.get_tensor(frame_detections)
                 # TODO add model here to output final prediction tensor and print to the image
 
             if self.final_tensor is not None:
-                if self.final_pred is None:
-                    self.final_pred = self.predictor(self.final_tensor)
+
+                self.final_pred = self.predictor(self.final_tensor)
+                f_pred = float(self.final_pred)
+
+                if f_pred < 0:
+                    self.over += abs(f_pred)
+                elif f_pred >= 0:
+                    self.under += abs(f_pred)
                 else:
-                    if float(self.final_pred) < 0.5:
-                        cv2.putText(im0, "Bet 0-1", (250, 250), 0, 2, [225, 255, 255], thickness=3,
-                                    lineType=cv2.LINE_AA)
-                    else:
-                        cv2.putText(im0, "Bet 00-2", (250, 250), 0, 2, [225, 255, 255], thickness=3,
-                                    lineType=cv2.LINE_AA)
+                    pass
+
+            over_ratio = self.over/(self.over+self.under)
+            under_ratio = 1 - over_ratio
+            cv2.putText(im0, "Bet 0-1 : %0.2f" % over_ratio, (150, 100), 0, 2, [225, 255, 255], thickness=3,
+                        lineType=cv2.LINE_AA)
+
+            cv2.putText(im0, "Bet 00-2 : %0.2f" % under_ratio, (150, 150), 0, 2, [225, 255, 255], thickness=3,
+                        lineType=cv2.LINE_AA)
 
         def blank(self):
             pass
@@ -72,9 +83,9 @@ def detect(cfg="cfg/yolo.cfg",
 
     # Initialize
     device = torch_utils.select_device(device='cpu' if ONNX_EXPORT else device)
-    if os.path.exists(out):
-        shutil.rmtree(out)  # delete output folder
-    os.makedirs(out)  # make new output folder
+    if not os.path.exists(out):
+        os.makedirs(out)  # make new output folder
+
 
     # Initialize model
     model = Darknet(cfg, img_size)
@@ -222,27 +233,58 @@ if __name__ == '__main__':
     parser.add_argument('--xcenter', type=int, help='X center in pixels of the video stream')
     parser.add_argument('--ycenter', type=int, help='Y Center in pixels of the video stream')
     parser.add_argument('--DT', type=float, help='Time step between frames (1/fps)')
+    parser.add_argument('--eval-dir', action='store_true', help='when you want to run predictions on an entire directory')
     opt = parser.parse_args()
     print(opt)
 
-    with torch.no_grad():
-        detect(cfg=opt.cfg,
-                   data=opt.data,
-                   weights=opt.weights,
-                   source=opt.source,
-                   out=opt.output,
-                   init_img_size=opt.img_size,
-                   conf_thres=opt.conf_thres,
-                   nms_thres=opt.nms_thres,
-                   fourcc=opt.fourcc,
-                   half=opt.half,
-                   device='',
-                   save_txt=opt.save_txt,
-                   save_img=opt.save_img,
-                   stream_img=opt.stream_img,
-                   predict=opt.predict,
-                    x_center=opt.xcenter,
-               y_center=opt.ycenter,
-               DT=opt.DT
+    if not opt.eval_dir:
+        with torch.no_grad():
+            detect(cfg=opt.cfg,
+                       data=opt.data,
+                       weights=opt.weights,
+                       source=opt.source,
+                       out=opt.output,
+                       init_img_size=opt.img_size,
+                       conf_thres=opt.conf_thres,
+                       nms_thres=opt.nms_thres,
+                       fourcc=opt.fourcc,
+                       half=opt.half,
+                       device='',
+                       save_txt=opt.save_txt,
+                       save_img=opt.save_img,
+                       stream_img=opt.stream_img,
+                       predict=opt.predict,
+                        x_center=opt.xcenter,
+                   y_center=opt.ycenter,
+                   DT=opt.DT,
+                       )
+    else:
+        for file in os.listdir(opt.source):
 
-                   )
+            try:
+                centers = file.split('.')
+                xcenter , ycenter = file.split('_')[-3:-1]
+                opt.xcenter, opt.ycenter = int(xcenter), int(ycenter)
+
+            except ValueError:
+                pass
+            detect(cfg=opt.cfg,
+                       data=opt.data,
+                       weights=opt.weights,
+                       source=os.path.join(opt.source,file),
+                       out=opt.output,
+                       init_img_size=opt.img_size,
+                       conf_thres=opt.conf_thres,
+                       nms_thres=opt.nms_thres,
+                       fourcc=opt.fourcc,
+                       half=opt.half,
+                       device='',
+                       save_txt=opt.save_txt,
+                       save_img=opt.save_img,
+                       stream_img=opt.stream_img,
+                       predict=opt.predict,
+                        x_center=opt.xcenter,
+                   y_center=opt.ycenter,
+                   DT=opt.DT,
+                       )
+

@@ -5,7 +5,7 @@ import operator
 from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
-from calculate import StateVector
+from StateVector import StateVector
 #from predict.Models import Prediction
 import cv2
 
@@ -35,7 +35,8 @@ def detect(cfg="cfg/yolo.cfg",
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     streams = 'streams' in source and source.endswith('.txt')
 
-    state_tracker = StateVector(x_center, y_center, DT)
+    # Instantiate
+    stateMemory = StateVector(x_center, y_center, DT)
 
     #final_tensor = None
     #final_pred = None
@@ -91,8 +92,9 @@ def detect(cfg="cfg/yolo.cfg",
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))]
 
     # Run inference
-    # counter for debugging loop
-    k = 0
+
+    k = 1  # counter for debugging loop
+
     t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
         t = time.time()
@@ -104,7 +106,7 @@ def detect(cfg="cfg/yolo.cfg",
         pred, _ = model(img)
 
         for i, det in enumerate(non_max_suppression(pred, conf_thres, nms_thres)):  # detections per image
-            print("entering loop %i" % k)
+            print("entering OUTER loop %i" % k)
             if streams:  # batch_size > 1
                 p, s, im0 = path[i], '%g: ' % i, im0s[i]
             else:
@@ -112,8 +114,12 @@ def detect(cfg="cfg/yolo.cfg",
 
             save_path = str(Path(out) / Path(p).name)
             s += '%gx%g ' % img.shape[2:]  # print string
+
+            # clear frames detection after object detection in frame
+            print("clear frame detections array")
             frame_detections = []
             objs_array = [] # flush after 2
+
             if det is not None and len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -124,25 +130,28 @@ def detect(cfg="cfg/yolo.cfg",
                     s += '%g %ss, ' % (n, classes[int(c)])  # add to string
 
                 # Write results
-                p = 0
+                p = 1
+                # xyxy is array of 4 tensors
                 for *xyxy, conf, _, cls in det:
                     print("xyxy is: {}".format(*xyxy))
+                    print(xyxy)
                     object_detection = {
                         "cls": int(cls),
                         "cnf": '%.2f' % float(conf),
                         "x": (int(xyxy[0])+int(xyxy[2]))/2,
                         "y": (int(xyxy[1])+int(xyxy[3]))/2,
                     }
-                    if p < 2:
+                    if p < 3:
+                        print("frames detection  before append: {}".format(frame_detections))
                         #frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
-                        print("inner loop count: %i for %i with %.2f at x: %i and y: %i" % (p,int(cls),float(conf),(int(xyxy[0])+int(xyxy[2]))/2,(int(xyxy[1])+int(xyxy[3]))/2))
+                        print("INNER loop detection: %i for cls: %i, conf: %.2f, x: %i, y: %i" % (p,int(cls),float(conf),(int(xyxy[0])+int(xyxy[2]))/2,(int(xyxy[1])+int(xyxy[3]))/2))
                     else:
                         p = 0
                     p = p + 1
-                    computations = StateVector((int(xyxy[0])+int(xyxy[2]))/2, (int(xyxy[1])+int(xyxy[3]))/2)
-                    frame_detections.append(object_detection)
 
-                    output = computations.get_tensor(frame_detections)
+                    frame_detections.append(object_detection)
+                    print("frames detection after append: {}".format(frame_detections))
+                    output = stateTracker.calcRealtime(frame_detections)
                     print(output)
 
 
@@ -150,12 +159,12 @@ def detect(cfg="cfg/yolo.cfg",
                         label = '%s %.2f' % (classes[int(cls)], conf)
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
 
-#                       frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
+                        frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
 
-#                        if final_tensor is None:
-#                            final_tensor = state_tracker.get_tensor(frame_detections)
+                        #if final_tensor is None:
+                        #    final_tensor = state_tracker.calculateRealtime(frame_detections)
 
-               #     # TODO add model here to output final prediction tensor and print to the image
+               # TODO add model here to output final prediction tensor and print to the image
 
                # if final_tensor is not None:
                #     if final_pred is None:

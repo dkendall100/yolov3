@@ -5,15 +5,15 @@ import torch
 
 class StateVector:
 
-    def __init__(self, x_center, y_center, DT):
+    def __init__(self, x_center, y_center):
         self.last_ball = None
         self.last_zero = None  #Predictive model network
         self.x_center = x_center
         self.y_center = y_center
-        self.DT = DT
-        self.b = 0
-        self.z = 0
-        self.i = 0
+        self.DT = 1/100
+        self.b = 0 # ball detection count
+        self.z = 0 # zero pocket detection count
+        self.i = 0 # total detection cout
 
     def get_tensor(self, det):
 

@@ -118,7 +118,6 @@ def detect(cfg="cfg/yolo.cfg",
             # clear frames detection after object detection in frame
             print("clear frame detections array")
             frame_detections = []
-            objs_array = [] # flush after 2
 
             if det is not None and len(det):
                 # Rescale boxes from img_size to im0 size
@@ -133,8 +132,7 @@ def detect(cfg="cfg/yolo.cfg",
                 p = 1
                 # xyxy is array of 4 tensors
                 for *xyxy, conf, _, cls in det:
-                    print("xyxy is: {}".format(*xyxy))
-                    print(xyxy)
+                    #print(xyxy)
                     object_detection = {
                         "cls": int(cls),
                         "cnf": '%.2f' % float(conf),
@@ -142,24 +140,27 @@ def detect(cfg="cfg/yolo.cfg",
                         "y": (int(xyxy[1])+int(xyxy[3]))/2,
                     }
                     if p < 3:
-                        print("frames detection  before append: {}".format(frame_detections))
+                        print("frames detection BEFORE append: {}".format(frame_detections))
                         #frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
-                        print("INNER loop detection: %i for cls: %i, conf: %.2f, x: %i, y: %i" % (p,int(cls),float(conf),(int(xyxy[0])+int(xyxy[2]))/2,(int(xyxy[1])+int(xyxy[3]))/2))
+                        #print("INNER loop detection: %i for cls: %i, conf: %.2f, x: %i, y: %i" % (p,int(cls),float(conf),(int(xyxy[0])+int(xyxy[2]))/2,(int(xyxy[1])+int(xyxy[3]))/2))
                     else:
                         p = 0
                     p = p + 1
 
                     frame_detections.append(object_detection)
-                    print("frames detection after append: {}".format(frame_detections))
-                    output = stateTracker.calcRealtime(frame_detections)
-                    print(output)
+                    print("frames detection AFTER append: {}".format(frame_detections))
 
 
                     if save_img or stream_img:  # Add bbox to image
                         label = '%s %.2f' % (classes[int(cls)], conf)
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
 
-                        frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
+                # Sort frame_detections array so cls 0 >> cls 1
+                frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
+
+                # Calculate StateVector differentials then return JSON object
+                output = stateMemory.calculateRealtime(frame_detections)
+                print("Output {}".format(output))
 
                         #if final_tensor is None:
                         #    final_tensor = state_tracker.calculateRealtime(frame_detections)
@@ -180,14 +181,14 @@ def detect(cfg="cfg/yolo.cfg",
 
                 if save_txt:  # Write to file
                     with open(save_path + '.txt', 'a') as file:
-                        file.write(json.dumps(frame_detections, separators=(',', ':')) + "\n")
-                        #file.write(output)
+                        #file.write(json.dumps(frame_detections, separators=(',', ':')) + "\n")
+                        file.write(json.dumps(output, separators=(',', ':')) + "\n")
             else:
                 if save_txt:
                     with open(save_path + '.txt', 'a') as file:
                         file.write(json.dumps(frame_detections, separators=(',', ':')) + "\n")
 
-            print('%sDone. (%.3fs)' % (s, time.time() - t))
+            print('%sDon3. (%.3fs)' % (s, time.time() - t))
             #StateVector.pv2sv(file_out,"output/computations",(int(xyxy[0])+int(xyxy[2]))/2, (int(xyxy[1])+int(xyxy[3]))/2, 1/30)
             # Begin computations
             #computations = StateVector((int(xyxy[0])+int(xyxy[2]))/2, (int(xyxy[1])+int(xyxy[3]))/2, 1/30)
@@ -220,10 +221,8 @@ def detect(cfg="cfg/yolo.cfg",
         print('Results saved to %s' % os.getcwd() + os.sep + out)
         if platform == 'darwin':  # MacOS
             os.system('open ' + out + ' ' + save_path)
-
+    # OUTER LOOP
     print('Done. (%.3fs)' % (time.time() - t0))
-    #output = computations.get_tensor(frame_detections)
-    #print(output)
 
 
 if __name__ == '__main__':

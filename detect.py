@@ -5,7 +5,7 @@ import operator
 from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
-from pv2sv import StateVector
+from calculate import StateVector
 #from predict.Models import Prediction
 import cv2
 
@@ -34,7 +34,9 @@ def detect(cfg="cfg/yolo.cfg",
     img_size = (320, 192) if ONNX_EXPORT else init_img_size  # (320, 192) or (416, 256) or (608, 352) for (height, width)
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     streams = 'streams' in source and source.endswith('.txt')
+
     state_tracker = StateVector(x_center, y_center, DT)
+
     #final_tensor = None
     #final_pred = None
     #predictor = Prediction()
@@ -137,7 +139,7 @@ def detect(cfg="cfg/yolo.cfg",
                     else:
                         p = 0
                     p = p + 1
-                    computations = StateVector((int(xyxy[0])+int(xyxy[2]))/2, (int(xyxy[1])+int(xyxy[3]))/2, 1/30)
+                    computations = StateVector((int(xyxy[0])+int(xyxy[2]))/2, (int(xyxy[1])+int(xyxy[3]))/2)
                     frame_detections.append(object_detection)
 
                     output = computations.get_tensor(frame_detections)

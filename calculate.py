@@ -5,67 +5,73 @@ import torch
 
 class StateVector:
 
-    def __init__(self, x_center, y_center):
+    def __init__(self, x_center, y_center, DT):
         self.last_ball = None
-        self.last_zero = None  #Predictive model network
-        self.x_center = x_center
-        self.y_center = y_center
-        self.DT = 1/100
+        self.last_zero = None  # Predictive model network
+        self.x_center = x_center # center of wheel hardcoded?
+        self.y_center = y_center # center of wheel hardcoded?
+        self.DT = DT
         self.b = 0 # ball detection count
         self.z = 0 # zero pocket detection count
         self.i = 0 # total detection cout
 
-    def get_tensor(self, det):
-
+    def get_tensor(self, detections):
         ball_flag = False
         zero_flag = False
         frame_state_vector = []
-        if len(det) > 0:
-            for inst in det:
-                if inst["cls"] == 0:
-                    ball = inst
+
+        if len(detections) > 0:
+            for val in detections:
+                if val["cls"] == 0:
+                    ball_object = val # ball is key value pairs object {'cls': 0, 'cnf': '0.92', 'x': 1073.5, 'y': 660.0}
                     ball_flag = True
-                elif inst["cls"] == 1:
-                    zero = inst
+                elif val["cls"] == 1:
+                    zero_object = val
                     zero_flag = True
                 else:
                     assert False, "Malformed class type in json array, class should be 0 or 1 only"
-            self.i = self.i + 1  # increment total count
+            self.i = self.i + 1  # Increment total detection count
 
-            #  Calculate ball speeds and accelerations
+            #  CALCULATE BALL SPEEDS AND ACCELERATIONS
+            # If there was a previous ball detection AND ball_flag = True
             if self.last_ball is not None and ball_flag:
-                ball = StateVector.to_polar(ball, self.x_center, self.y_center)
-                ball['w'] = (StateVector.rad_dist(ball['theta'], self.last_ball['theta']) / (self.DT*(self.i - self.b)))
+                ball_object = StateVector.to_polar(ball_object, self.x_center, self.y_center)
+                ball_object['w'] = (StateVector.rad_dist(ball_object['theta'], self.last_ball['theta']) / (self.DT*(self.i - self.b)))
+
+                # If previous ball detection has angular velocity
                 if self.last_ball['w'] is not None:
-                    ball['a'] = ((ball['w'] - self.last_ball['w']) / (self.DT*(self.i - self.b)))
+                    ball_object['a'] = ((ball_object['w'] - self.last_ball['w']) / (self.DT*(self.i - self.b)))
 
-                if ball['a'] and ball['w'] is not None:
-                    frame_state_vector.append(ball)
+                # If previous ball acceleration and velocity is not null
+                if ball_object['a'] and ball_object['w'] is not None:
+                    frame_state_vector.append(ball_object)
 
-                self.last_ball = ball
+                self.last_ball = ball_object
                 self.b = self.b + 1  # increment ball detection count
+
+            # If there was NOT a previous ball and ball_flag = True
             elif self.last_ball is None and ball_flag:
-                self.last_ball = StateVector.to_polar(ball, self.x_center, self.y_center)
+                self.last_ball = StateVector.convertToPolar(ball_object, self.x_center, self.y_center)
                 self.b = self.b + 1  # increment ball detection count
 
-            #  Calculate zero speeds and accelerations
+            #  CALCULATE ZERO SPEEDS AND ACCELERATIONS
             if self.last_zero is not None and zero_flag:
-                zero = StateVector.to_polar(zero, self.x_center, self.y_center)
-                zero['w'] = ((StateVector.rad_dist(zero['theta'], self.last_zero['theta'])) / (self.DT*(self.i - self.z)))
+                zero_object = StateVector.convertToPolar(zero_object, self.x_center, self.y_center)
+                zero_object['w'] = ((StateVector.rad_dist(zero_object['theta'], self.last_zero['theta'])) / (self.DT*(self.i - self.z)))
                 if self.last_zero['w'] is not None:
-                    zero['a'] = ((zero['w'] - self.last_zero['w']) / ((self.i - self.z)*self.DT))
-                if zero['a'] and zero['w'] is not None:
-                    frame_state_vector.append(zero)
-                self.last_zero = zero
+                    zero_object['a'] = ((zero_object['w'] - self.last_zero['w']) / ((self.i - self.z)*self.DT))
+                if zero_object['a'] and zero_object['w'] is not None:
+                    frame_state_vector.append(zero_object)
+                self.last_zero = zero_object
                 self.z = self.z + 1
             elif self.last_zero is None and zero_flag:
-                self.last_zero = StateVector.to_polar(zero, self.x_center, self.y_center)
+                self.last_zero = StateVector.convertToPolar(zero_object, self.x_center, self.y_center)
                 self.z = self.z + 1
         else:
             self.i = self.i + 1
 
         if len(frame_state_vector) == 2:
-            return torch.tensor([frame_state_vector[0]['r'], frame_state_vector[0]['theta'], frame_state_vector[0]['w'], frame_state_vector[0]['a'], frame_state_vector[1]['r'], frame_state_vector[1]['theta'], frame_state_vector[1]['w'], frame_state_vector[1]['a']])
+            return torch.tensor([frame_state_vector[0]['radius'], frame_state_vector[0]['theta'], frame_state_vector[0]['w'], frame_state_vector[0]['acceleration'], frame_state_vector[1]['radius'], frame_state_vector[1]['theta'], frame_state_vector[1]['w'], frame_state_vector[1]['acceleration']])
         else:
             return None
 
@@ -101,7 +107,7 @@ class StateVector:
 
                 #  Calculate ball speeds and accelerations
                 if last_ball is not None and ball_flag:
-                    ball = StateVector.to_polar(ball, x_center, y_center)
+                    ball = StateVector.convertToPolar(ball, x_center, y_center)
                     ball['w'] = (StateVector.rad_dist(ball['theta'], last_ball['theta']) / (DT*(i - b)))
                     if last_ball['w'] is not None:
                         ball['a'] = ((ball['w'] - last_ball['w']) / (DT*(i - b)))
@@ -136,12 +142,13 @@ class StateVector:
             det = pos_file.readline()
 
     @staticmethod
-    def to_polar(det_object, x_center, y_center):
+    def convertToPolar(detection_object, x_center, y_center):
         #  Calculate midpoint
         try:
-            x = det_object.pop('x') - x_center
-            y = det_object.pop('y') - y_center
-            r = (x ** 2 + y ** 2) ** (1 / 2)
+            x = detection_object.pop('x') - x_center # subtract "x": key pair in dict object from x_center
+            y = detection_object.pop('y') - y_center # subtract "y": key pair in dict object from y_center
+
+            r = (x ** 2 + y ** 2) ** (1 / 2) # calculate radius
             if x > 0:
                 if y >= 0:
                     theta = np.degrees(np.arctan(y / x))
@@ -155,17 +162,19 @@ class StateVector:
                 elif y < 0:
                     theta = 270
 
-            det_object['r'] = r
-            det_object['theta'] = theta
-            det_object['w'] = None
-            det_object['a'] = None
-            return det_object
+            detection_object['radius'] = r
+            detection_object['theta'] = theta
+            detection_object['w'] = None
+            detection_object['acceleration'] = None
+
+            return detection_object # key/value pair object {'cls': 0, 'cnf': '0.95', 'radius': 0.0, 'theta': 0, 'w': None, 'a': None}
+
 
         except KeyError:
             return det_object
 
     @staticmethod
-    def rad_dist(b, t):  # Calculates radial distance between two points
+    def calcRadialDistance(b, t):  # Calculates radial distance between two points
         a = b - t
         a = (a + 180) % 360 - 180
         return a

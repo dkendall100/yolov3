@@ -132,10 +132,11 @@ def detect(cfg="cfg/yolo.cfg",
                 p = 1
                 # xyxy is array of 4 tensors
                 for *xyxy, conf, _, cls in det:
-                    #print(xyxy)
+                    print(xyxy)
                     object_detection = {
                         "cls": int(cls),
                         "cnf": '%.2f' % float(conf),
+                        # calculate midpoint between to x values or y values
                         "x": (int(xyxy[0])+int(xyxy[2]))/2,
                         "y": (int(xyxy[1])+int(xyxy[3]))/2,
                     }
@@ -164,19 +165,31 @@ def detect(cfg="cfg/yolo.cfg",
                 print("Output {}".format(output))
 
 
-                coords1 = (0, 25)
-                coords2 = (0,50)
-                coords3 = (0, 50)
+                coords_speed = (0, 25)
+                coords_vel = (0,60)
+                coords_accel = (0, 95)
+                coords_at_rest = (0, 125)
+                coords_pred = (0, 160)
+                coords_pred_val = (300,160)
+
+
                 if output is not None:
                     cv_speed = output[0]['s']
+                    cv_vel = output[0]['w']
                     cv_accel = output[0]['a']
+                    cv_at_rest = output[0]['at_rest']
                     s_str = "Ball Speed: %i" % cv_speed
-                    s_str2 = "Ball Acceleration: %i" % cv_accel
+                    s_str2 = "Ball Velocity: %i" % cv_vel
+                    s_str3 = "Ball Acceleration: %i" % cv_accel
+                    s_str4 = "Ball At Rest %s" % cv_at_rest
                 # Legend
-                    cv2.putText(im0, s_str, coords1 ,cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 51, 255], thickness=2,lineType=cv2.LINE_AA)
-                    cv2.putText(im0, s_str2, coords2 ,cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 51, 255], thickness=2,lineType=cv2.LINE_AA)
-
-                cv2.putText(im0, "Pocket Prediction: ", coords3, 0, 1, [225, 51, 255], thickness=2, lineType=cv2.LINE_AA)
+                    cv2.putText(im0, s_str, coords_speed ,cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
+                    cv2.putText(im0, s_str2, coords_vel , cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
+                    cv2.putText(im0, s_str3, coords_accel , cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
+                    cv2.putText(im0, s_str4, coords_at_rest, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
+                    cv2.putText(im0, "Pocket Prediction:", coords_pred, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
+                    if output[0]['at_rest']:
+                        cv2.putText(im0, "69", coords_pred_val, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
 
                         #if final_tensor is None:
                         #    final_tensor = state_tracker.calculateRealtime(frame_detections)

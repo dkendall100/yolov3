@@ -88,18 +88,31 @@ class StateVector:
         print("frame state vector length: {}".format(len(frame_state_vector)))
 
         if len(frame_state_vector) == 2:
+
             #if frame_state_vector[0]['s'] - frame_state_vector[1]['s'] < 0:
             #    self.at_rest = True
+
             print(frame_state_vector[0]['s'] - frame_state_vector[1]['s'])
             if frame_state_vector[0]['s'] < 0:
                 frame_state_vector[0]['at_rest'] = True
+
+                pocket = abs(frame_state_vector[0]['theta'] - frame_state_vector[1]['theta'])
+
+                theta_array = np.linspace(0,360,38)
+
+                for i in range(len(theta_array)):
+                    if theta_array[i] <= pocket <= theta_array[i+1]:
+                        pocket = pick_pocket(i)
+                        frame_state_vector[0]['pocket'] = pocket
+                        break
+
 
             # Flucatuates alot
             #if frame_state_vector[0]['a'] <= 0:
             #    frame_state_vector[0]['at_rest'] = True
 
             #return torch.tensor([frame_state_vector[0]['radius'], frame_state_vector[0]['theta'], frame_state_vector[0]['w'], frame_state_vector[0]['acceleration'], frame_state_vector[1]['radius'], frame_state_vector[1]['theta'], frame_state_vector[1]['w'], frame_state_vector[1]['acceleration']])
-            return frame_state_vector
+            return frame_state_vector[0]
         else:
             return None
 
@@ -120,11 +133,14 @@ class StateVector:
 
         if x > 0:
             if y >= 0:
+            # Quadrant 1
                 theta = np.degrees(np.arctan(y / x))
             else:
+            # Quadrant 4
                 theta = np.degrees(np.arctan(y / x)) + 360
         elif x < 0:
-                theta = np.degrees(np.arctan(y / x)) + 180
+            # Quadrant 2 and 3
+            theta = np.degrees(np.arctan(y / x)) + 180
         elif x == 0:
             if y > 0:
                 theta = 90
@@ -214,3 +230,82 @@ class StateVector:
             if len(frame_state_vector) == 2:
                 spin_file.write(json.dumps(frame_state_vector) + "|"+str(result)+"\n")
             det = pos_file.readline()
+
+@staticmethod
+def pick_pocket(index):
+    if index == 0:
+        return "0"
+    if index == 1:
+        return "2"
+    if index == 2:
+        return "14"
+    if index == 3:
+        return "35"
+    if index == 4:
+        return "23"
+    if index == 5:
+        return "4"
+    if index == 6:
+        return "16"
+    if index == 7:
+        return "33"
+    if index == 8:
+        return "21"
+    if index == 9:
+        return "6"
+    if index == 10:
+        return "18"
+    if index == 11:
+        return "31"
+    if index == 12:
+        return "19"
+    if index == 13:
+        return "8"
+    if index == 14:
+        return "12"
+    if index == 15:
+        return "29"
+    if index == 16:
+        return "25"
+    if index == 17:
+        return "10"
+    if index == 18:
+        return "27"
+    if index == 19:
+        return "00"
+    if index == 20:
+        return "1"
+    if index == 21:
+        return "13"
+    if index == 22:
+        return "36"
+    if index == 23:
+        return "24"
+    if index == 24:
+        return "3"
+    if index == 25:
+        return "15"
+    if index == 26:
+        return "34"
+    if index == 27:
+        return "22"
+    if index == 28:
+        return "5"
+    if index == 29:
+        return "17"
+    if index == 30:
+        return "32"
+    if index == 31:
+        return "20"
+    if index == 32:
+        return "7"
+    if index == 33:
+        return "11"
+    if index == 34:
+        return "30"
+    if index == 35:
+        return "26"
+    if index == 36:
+        return "9"
+    if index == 37:
+        return "28"

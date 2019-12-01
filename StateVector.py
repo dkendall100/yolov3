@@ -14,7 +14,7 @@ class StateVector:
         self.DT = DT
         self.b = 0 # ball detection count
         self.z = 0 # zero pocket detection count
-        self.i = 0 # total detection cout
+        self.i = 0 # total frame count
 
     def calculate_realtime(self, detections):
         ball_flag = False
@@ -88,8 +88,16 @@ class StateVector:
         print("frame state vector length: {}".format(len(frame_state_vector)))
 
         if len(frame_state_vector) == 2:
-            if frame_state_vector[0]['s'] - frame_state_vector[1]['s'] < 0:
-                self.at_rest = True
+            #if frame_state_vector[0]['s'] - frame_state_vector[1]['s'] < 0:
+            #    self.at_rest = True
+            print(frame_state_vector[0]['s'] - frame_state_vector[1]['s'])
+            if frame_state_vector[0]['s'] < 0:
+                frame_state_vector[0]['at_rest'] = True
+
+            # Flucatuates alot
+            #if frame_state_vector[0]['a'] <= 0:
+            #    frame_state_vector[0]['at_rest'] = True
+
             #return torch.tensor([frame_state_vector[0]['radius'], frame_state_vector[0]['theta'], frame_state_vector[0]['w'], frame_state_vector[0]['acceleration'], frame_state_vector[1]['radius'], frame_state_vector[1]['theta'], frame_state_vector[1]['w'], frame_state_vector[1]['acceleration']])
             return frame_state_vector
         else:
@@ -127,7 +135,8 @@ class StateVector:
         detection_object['theta'] = theta
         detection_object['w'] = None
         detection_object['a'] = None
-        detection_object['at_rest'] = False
+        if detection_object['cls'] == 0:
+            detection_object['at_rest'] = False
 
         return detection_object # key/value pair object {'cls': 0, 'cnf': '0.95', 'radius': 0.0, 'theta': 0, 'w': None, 'a': None}
         #except KeyError:
@@ -135,9 +144,11 @@ class StateVector:
 
     @staticmethod
     def calculate_radial_distance(curr_theta, prev_theta):  # Calculates radial distance between two points
+        # if speed is CCW = positive
+        # if speed is CW = ne
         angle = curr_theta - prev_theta
         angle = (angle + 180) % 360 - 180
-        return angle
+        return angle # returns angle in degrees (can return positive or negative)
 
 
     @staticmethod

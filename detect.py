@@ -35,8 +35,8 @@ def detect(cfg="cfg/yolo.cfg",
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     streams = 'streams' in source and source.endswith('.txt')
 
-    # Instantiate
-    stateMemory = StateVector(x_center, y_center, DT)
+    # Instantiate StateVector Class
+    state_memory = StateVector(x_center, y_center, DT)
 
     #final_tensor = None
     #final_pred = None
@@ -148,6 +148,7 @@ def detect(cfg="cfg/yolo.cfg",
                     p = p + 1
 
                     frame_detections.append(object_detection)
+                    frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
                     print("frames detection AFTER append: {}".format(frame_detections))
 
 
@@ -159,8 +160,23 @@ def detect(cfg="cfg/yolo.cfg",
                 frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
 
                 # Calculate StateVector differentials then return JSON object
-                output = stateMemory.calculateRealtime(frame_detections)
+                output = state_memory.calculate_realtime(frame_detections)
                 print("Output {}".format(output))
+
+
+                coords1 = (0, 25)
+                coords2 = (0,50)
+                coords3 = (0, 50)
+                if output is not None:
+                    cv_speed = output[0]['s']
+                    cv_accel = output[0]['a']
+                    s_str = "Ball Speed: %i" % cv_speed
+                    s_str2 = "Ball Acceleration: %i" % cv_accel
+                # Legend
+                    cv2.putText(im0, s_str, coords1 ,cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 51, 255], thickness=2,lineType=cv2.LINE_AA)
+                    cv2.putText(im0, s_str2, coords2 ,cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 51, 255], thickness=2,lineType=cv2.LINE_AA)
+
+                cv2.putText(im0, "Pocket Prediction: ", coords3, 0, 1, [225, 51, 255], thickness=2, lineType=cv2.LINE_AA)
 
                         #if final_tensor is None:
                         #    final_tensor = state_tracker.calculateRealtime(frame_detections)
@@ -188,6 +204,7 @@ def detect(cfg="cfg/yolo.cfg",
                     with open(save_path + '.txt', 'a') as file:
                         file.write(json.dumps(frame_detections, separators=(',', ':')) + "\n")
 
+            # INNER LOOP
             print('%sDon3. (%.3fs)' % (s, time.time() - t))
             #StateVector.pv2sv(file_out,"output/computations",(int(xyxy[0])+int(xyxy[2]))/2, (int(xyxy[1])+int(xyxy[3]))/2, 1/30)
             # Begin computations
@@ -261,5 +278,4 @@ if __name__ == '__main__':
                    save_img=opt.save_img,
                    stream_img=opt.stream_img,
                     predict=opt.predict,
-
                    )

@@ -8,6 +8,7 @@ from utils.utils import *
 from StateVector import StateVector
 #from predict.Models import Prediction
 import cv2
+import random
 
 
 def detect(cfg="cfg/yolo.cfg",
@@ -25,8 +26,8 @@ def detect(cfg="cfg/yolo.cfg",
            save_img=False,
            stream_img=False,
            predict=False,
-           x_center=567,
-           y_center=567,
+           x_center=677,
+           y_center=501,
            DT=1/100,
 
 
@@ -140,17 +141,17 @@ def detect(cfg="cfg/yolo.cfg",
                         "x": (int(xyxy[0])+int(xyxy[2]))/2,
                         "y": (int(xyxy[1])+int(xyxy[3]))/2,
                     }
-                    if p < 3:
-                        print("frames detection BEFORE append: {}".format(frame_detections))
+                    #if p < 3:
+                        #print("frames detection BEFORE append: {}".format(frame_detections))
                         #frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
                         #print("INNER loop detection: %i for cls: %i, conf: %.2f, x: %i, y: %i" % (p,int(cls),float(conf),(int(xyxy[0])+int(xyxy[2]))/2,(int(xyxy[1])+int(xyxy[3]))/2))
-                    else:
-                        p = 0
+                    #else:
+                        #p = 0
                     p = p + 1
 
                     frame_detections.append(object_detection)
                     frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
-                    print("frames detection AFTER append: {}".format(frame_detections))
+                    #print("frames detection AFTER append: {}".format(frame_detections))
 
 
                     if save_img or stream_img:  # Add bbox to image
@@ -164,35 +165,50 @@ def detect(cfg="cfg/yolo.cfg",
                 output = state_memory.calculate_realtime(frame_detections)
                 print("Output {}".format(output))
 
+                pockets_list = ["0","2","14","35","23","4","16","33","21","6","18","31","19","8","12","29","25","10","27","00","1","13","36","24","3","15","34","22","5","17","32","20","7","11","30","26","9","28"]
+                cv_pred = random.choice(pockets_list)
 
                 coords_speed = (0, 25)
+                coords_speed_val = (350, 25)
                 coords_vel = (0,60)
+                coords_vel_val = (350,60)
                 coords_accel = (0, 95)
+                coords_accel_val = (350,95)
                 coords_at_rest = (0, 125)
+                coords_at_rest_val = (350,125)
                 coords_pred = (0, 160)
-                coords_pred_val = (300,160)
+                coords_pred_val = (350,160)
+                coords_actual = (0, 195)
+                coords_actual_val= (350,195)
 
+                cv2.putText(im0, "Angular Speed:", coords_speed, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
+                cv2.putText(im0, "Angular Velocity:", coords_vel, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
+                cv2.putText(im0, "Angular Acceleration:", coords_accel, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
+                cv2.putText(im0, "Ball at Rest:", coords_at_rest, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
+                cv2.putText(im0, "Pocket Prediction:", coords_pred, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
+                cv2.putText(im0, "Pocket Actual:", coords_actual, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
 
                 if output is not None:
                     cv_speed = output[0]['s']
                     cv_vel = output[0]['w']
                     cv_accel = output[0]['a']
                     cv_at_rest = output[0]['at_rest']
-                    s_str = "Ball Speed: %i" % cv_speed
-                    s_str2 = "Ball Velocity: %i" % cv_vel
-                    s_str3 = "Ball Acceleration: %i" % cv_accel
-                    s_str4 = "Ball At Rest %s" % cv_at_rest
-                # Legend
-                    cv2.putText(im0, s_str, coords_speed ,cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
-                    cv2.putText(im0, s_str2, coords_vel , cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
-                    cv2.putText(im0, s_str3, coords_accel , cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
-                    cv2.putText(im0, s_str4, coords_at_rest, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
-                    cv2.putText(im0, "Pocket Prediction:", coords_pred, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
-                    if output[0]['at_rest']:
-                        cv2.putText(im0, "69", coords_pred_val, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
 
+                    cv2.putText(im0, "%.4f" % cv_speed, coords_speed_val, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
+                    cv2.putText(im0, "%.4f" % cv_vel, coords_vel_val, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
+                    cv2.putText(im0, "%.4f" % cv_accel, coords_accel_val, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
+
+                    if output[0]['at_rest']:
+                        cv_pocket = output[0]['pocket_val']
+                        cv2.putText(im0, "%s" % cv_pocket, coords_actual_val, 0, 1, [51, 255, 51], thickness=2, lineType=cv2.LINE_AA)
+                        cv2.putText(im0, "%s" % cv_at_rest, coords_at_rest_val, 0, 1, [51, 255, 51], thickness=2, lineType=cv2.LINE_AA)
                         #if final_tensor is None:
-                        #    final_tensor = state_tracker.calculateRealtime(frame_detections)
+                        # final_tensor = state_tracker.calculateRealtime(frame_detections)
+                    else:
+                        cv2.putText(im0, "%s" % cv_at_rest, coords_at_rest_val, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
+                    if output[0]['s'] > 100000:
+                        cv2.putText(im0, "%s" % cv_pred, coords_pred_val, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
+
 
                # TODO add model here to output final prediction tensor and print to the image
 

@@ -1,6 +1,7 @@
 import numpy as np
 import json
 import torch
+import operator
 
 
 class StateVector:
@@ -88,7 +89,9 @@ class StateVector:
         print("frame state vector length: {}".format(len(frame_state_vector)))
 
         if len(frame_state_vector) == 2:
-
+            frame_state_vector.sort(key=operator.itemgetter("cls", "cnf"))
+            print("frame_state_vector StateVector.py:")
+            print(frame_state_vector)
             #if frame_state_vector[0]['s'] - frame_state_vector[1]['s'] < 0:
             #    self.at_rest = True
 
@@ -96,14 +99,16 @@ class StateVector:
             if frame_state_vector[0]['s'] < 0:
                 frame_state_vector[0]['at_rest'] = True
 
+
                 pocket = abs(frame_state_vector[0]['theta'] - frame_state_vector[1]['theta'])
 
                 theta_array = np.linspace(0,360,38)
 
                 for i in range(len(theta_array)):
                     if theta_array[i] <= pocket <= theta_array[i+1]:
-                        pocket = pick_pocket(i)
-                        frame_state_vector[0]['pocket'] = pocket
+                        frame_state_vector[0]['pocket_index'] = i
+                        pocket = StateVector.pick_pocket(i)
+                        frame_state_vector[0]['pocket_val'] = pocket
                         break
 
 
@@ -112,7 +117,7 @@ class StateVector:
             #    frame_state_vector[0]['at_rest'] = True
 
             #return torch.tensor([frame_state_vector[0]['radius'], frame_state_vector[0]['theta'], frame_state_vector[0]['w'], frame_state_vector[0]['acceleration'], frame_state_vector[1]['radius'], frame_state_vector[1]['theta'], frame_state_vector[1]['w'], frame_state_vector[1]['acceleration']])
-            return frame_state_vector[0]
+            return frame_state_vector
         else:
             return None
 
@@ -231,81 +236,81 @@ class StateVector:
                 spin_file.write(json.dumps(frame_state_vector) + "|"+str(result)+"\n")
             det = pos_file.readline()
 
-@staticmethod
-def pick_pocket(index):
-    if index == 0:
-        return "0"
-    if index == 1:
-        return "2"
-    if index == 2:
-        return "14"
-    if index == 3:
-        return "35"
-    if index == 4:
-        return "23"
-    if index == 5:
-        return "4"
-    if index == 6:
-        return "16"
-    if index == 7:
-        return "33"
-    if index == 8:
-        return "21"
-    if index == 9:
-        return "6"
-    if index == 10:
-        return "18"
-    if index == 11:
-        return "31"
-    if index == 12:
-        return "19"
-    if index == 13:
-        return "8"
-    if index == 14:
-        return "12"
-    if index == 15:
-        return "29"
-    if index == 16:
-        return "25"
-    if index == 17:
-        return "10"
-    if index == 18:
-        return "27"
-    if index == 19:
-        return "00"
-    if index == 20:
-        return "1"
-    if index == 21:
-        return "13"
-    if index == 22:
-        return "36"
-    if index == 23:
-        return "24"
-    if index == 24:
-        return "3"
-    if index == 25:
-        return "15"
-    if index == 26:
-        return "34"
-    if index == 27:
-        return "22"
-    if index == 28:
-        return "5"
-    if index == 29:
-        return "17"
-    if index == 30:
-        return "32"
-    if index == 31:
-        return "20"
-    if index == 32:
-        return "7"
-    if index == 33:
-        return "11"
-    if index == 34:
-        return "30"
-    if index == 35:
-        return "26"
-    if index == 36:
-        return "9"
-    if index == 37:
-        return "28"
+    @staticmethod
+    def pick_pocket(index):
+        if index == 0:
+            return "0"
+        elif index == 1:
+            return "2"
+        elif index == 2:
+            return "14"
+        elif index == 3:
+            return "35"
+        elif index == 4:
+            return "23"
+        elif index == 5:
+            return "4"
+        elif index == 6:
+            return "16"
+        elif index == 7:
+            return "33"
+        elif index == 8:
+            return "21"
+        elif index == 9:
+            return "6"
+        elif index == 10:
+            return "18"
+        elif index == 11:
+            return "31"
+        elif index == 12:
+            return "19"
+        elif index == 13:
+            return "8"
+        elif index == 14:
+            return "12"
+        elif index == 15:
+            return "29"
+        elif index == 16:
+            return "25"
+        elif index == 17:
+            return "10"
+        elif index == 18:
+            return "27"
+        elif index == 19:
+            return "00"
+        elif index == 20:
+            return "1"
+        elif index == 21:
+            return "13"
+        elif index == 22:
+            return "36"
+        elif index == 23:
+            return "24"
+        elif index == 24:
+            return "3"
+        elif index == 25:
+            return "15"
+        elif index == 26:
+            return "34"
+        elif index == 27:
+            return "22"
+        elif index == 28:
+            return "5"
+        elif index == 29:
+            return "17"
+        elif index == 30:
+            return "32"
+        elif index == 31:
+            return "20"
+        elif index == 32:
+            return "7"
+        elif index == 33:
+            return "11"
+        elif index == 34:
+            return "30"
+        elif index == 35:
+            return "26"
+        elif index == 36:
+            return "9"
+        elif index == 37:
+            return "28"

@@ -43,10 +43,10 @@ class StateVector:
                     frame_state_vector.append(ball)
 
                 self.last_ball = ball
-                self.b = self.b + 1  # increment ball detection count
+                self.b = self.i  # increment ball detection count
             elif self.last_ball is None and ball_flag:
                 self.last_ball = StateVector.to_polar(ball, self.x_center, self.y_center)
-                self.b = self.b + 1  # increment ball detection count
+                self.b = self.i  # increment ball detection count
 
             #  Calculate zero speeds and accelerations
             if self.last_zero is not None and zero_flag:
@@ -57,10 +57,10 @@ class StateVector:
                 if zero['a'] and zero['w'] is not None:
                     frame_state_vector.append(zero)
                 self.last_zero = zero
-                self.z = self.z + 1
+                self.z = self.i
             elif self.last_zero is None and zero_flag:
                 self.last_zero = StateVector.to_polar(zero, self.x_center, self.y_center)
-                self.z = self.z + 1
+                self.z = self.i
         else:
             self.i = self.i + 1
 
@@ -110,24 +110,24 @@ class StateVector:
                         frame_state_vector.append(ball)
 
                     last_ball = ball
-                    b = b + 1  # increment ball detection count
+                    b = i  # increment ball detection count
                 elif last_ball is None and ball_flag:
                     last_ball = StateVector.to_polar(ball, x_center, y_center)
-                    b = b + 1  # increment ball detection count
+                    b = i  # increment ball detection count
 
                 #  Calculate zero speeds and accelerations
                 if last_zero is not None and zero_flag:
                     zero = StateVector.to_polar(zero, x_center, y_center)
                     zero['w'] = ((StateVector.rad_dist(zero['theta'], last_zero['theta'])) / (DT*(i - z)))
                     if last_zero['w'] is not None:
-                        last_zero['a'] = ((zero['w'] - last_zero['w']) / ((i - z)*DT))
+                        zero['a'] = ((zero['w'] - last_zero['w']) / ((i - z)*DT))
                     if zero['a'] and zero['w'] is not None:
                         frame_state_vector.append(zero)
                     last_zero = zero
-                    z = z + 1
+                    z = i
                 elif last_zero is None and zero_flag:
                     last_zero = StateVector.to_polar(zero, x_center, y_center)
-                    z = z + 1
+                    z = i
             else:
                 i = i + 1
 

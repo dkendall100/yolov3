@@ -96,8 +96,11 @@ def detect(cfg="cfg/yolo.cfg",
 
     # Run inference
     started = False
+    init_pred = True
+    pocket_list = []
 
     k = 1  # counter for debugging loop
+
 
     t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
@@ -117,6 +120,9 @@ def detect(cfg="cfg/yolo.cfg",
                 p, s, im0 = path, '', im0s
 
             save_path = str(Path(out) / Path(p).name)
+            print(save_path)
+            splice_path = save_path.split('\\')
+            print(splice_path)
             s += '%gx%g ' % img.shape[2:]  # print string
 
             # clear frames detection after object detection in frame
@@ -151,7 +157,9 @@ def detect(cfg="cfg/yolo.cfg",
                     #else:
                         #p = 0
                     p = p + 1
-
+                    print("t0 of obj detect: {}".format(t0))
+                    print("t of obj detect: {}".format(t))
+                    print("time.time() of obj detect: {}".format(time.time()))
                     frame_detections.append(object_detection)
                     frame_detections.sort(key=operator.itemgetter("cls", "cnf"))
                     #print("frames detection AFTER append: {}".format(frame_detections))
@@ -200,23 +208,28 @@ def detect(cfg="cfg/yolo.cfg",
 
                     if output[0]['at_rest']:
                         #started = False
+                        pocket_list.append(output[0]['pocket_val'])
                         cv_pocket = output[0]['pocket_val']
                         cv2.putText(im0, "%s" % cv_pocket, coords_actual_val, 0, 1, [51, 255, 51], thickness=2, lineType=cv2.LINE_AA)
                         cv2.putText(im0, "%s" % cv_at_rest, coords_at_rest_val, 0, 1, [51, 255, 51], thickness=2, lineType=cv2.LINE_AA)
                         if "17" == cv_pocket:
                             cv2.putText(im0, "17", coords_pred_val, 0, 1, [51, 255, 51], thickness=2, lineType=cv2.LINE_AA)
+
                         #if final_tensor is None:
                         # final_tensor = state_tracker.calculateRealtime(frame_detections)
                     else:
                         cv2.putText(im0, "%s" % cv_at_rest, coords_at_rest_val, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
                     if output[0]['s'] > 1000 or started:
                         started = True
-                        if save_txt:
-                            if 'pocket_val' in output[0]:
-                                with open('innovators.csv', 'w', newline ='') as file:
-                                    writer = csv.writer(file)
-                                    writer.writerow(["ball_speed","ball_acceleration","ball_theta","zero_speed","zero_acceleration", "zero_theta","final_pocket"])
-                                    writer.writerow([output[0]['s'],output[0]['a'],output[0]['theta'],output[1]['s'],output[1]['a'],output[1]['theta'],output[0]['pocket_val']])
+                        if save_txt and init_pred:
+                            init_pred_list = [splice_path[1],output[0]['s'],output[0]['a'],output[0]['theta'],output[0]['r'],output[1]['s'],output[1]['a'],output[1]['theta'],output[0]['r']]
+                            init_pred = False
+                        #if 'pocket_val' in output[0]:
+                        #    with open('GOPR0037.csv', 'w', newline ='') as file:
+                        #        writer = csv.writer(file)
+                        #        writer.writerow(["spin","ball_speed","ball_acceleration","ball_theta","ball_radius","zero_speed","zero_acceleration", "zero_theta","zero_radius","final_pocket"])
+                        #        init_pred_list.append(output[0]['pocket_val'])
+                        #        writer.writerow(init_pred_list)
 
                                 #file.write(json.dumps(output, separators=(',', ':')) + "\n")
 
@@ -281,6 +294,16 @@ def detect(cfg="cfg/yolo.cfg",
         print('Results saved to %s' % os.getcwd() + os.sep + out)
         if platform == 'darwin':  # MacOS
             os.system('open ' + out + ' ' + save_path)
+        #if 'pocket_val' in output[0]:
+        #with open('GOPR0037.csv', 'w', newline ='') as file:
+        with open('pred_data.csv', 'a') as file:
+            #writer = csv.writer(file)
+            #writer.writerow(["spin", "ball_speed","ball_acceleration","ball_theta","zero_speed","zero_acceleration", "zero_theta","final_pocket"])
+            res = state_memory.most_freq_pocket(pocket_list)
+            init_pred_list.append(res)
+            #writer.writerow(init_pred_list)
+            file.write("{},{},{},{},{},{},{},{},{},{} \n".format(init_pred_list[0],init_pred_list[1],init_pred_list[2] ,init_pred_list[3] ,init_pred_list[4],init_pred_list[5],init_pred_list[6],init_pred_list[7],init_pred_list[8],res))
+            #file.write("Hello world")
     # OUTER LOOP
     print('Done. (%.3fs)' % (time.time() - t0))
 

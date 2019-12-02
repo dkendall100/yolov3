@@ -16,6 +16,8 @@ class StateVector:
         self.b = 0 # ball detection count
         self.z = 0 # zero pocket detection count
         self.i = 0 # total frame count
+        self.pocket_list = []
+        self.pocket_count = 0
 
     def calculate_realtime(self, detections):
         ball_flag = False
@@ -89,6 +91,7 @@ class StateVector:
         print("frame state vector length: {}".format(len(frame_state_vector)))
 
         if len(frame_state_vector) == 2:
+            print("before sorting in detect.py {}".format(frame_state_vector))
             frame_state_vector.sort(key=operator.itemgetter("cls", "cnf"))
             print("frame_state_vector StateVector.py:")
             print(frame_state_vector)
@@ -108,15 +111,19 @@ class StateVector:
                     if theta_array[i] <= pocket <= theta_array[i+1]:
                         frame_state_vector[0]['pocket_index'] = i
                         pocket = StateVector.pick_pocket(i)
+                        self.pocket_list.append(pocket)
                         frame_state_vector[0]['pocket_val'] = pocket
                         break
-
+                print("after sorting in detect.py {}".format(frame_state_vector))
+                #return frame_state_vector
 
             # Flucatuates alot
             #if frame_state_vector[0]['a'] <= 0:
             #    frame_state_vector[0]['at_rest'] = True
 
             #return torch.tensor([frame_state_vector[0]['radius'], frame_state_vector[0]['theta'], frame_state_vector[0]['w'], frame_state_vector[0]['acceleration'], frame_state_vector[1]['radius'], frame_state_vector[1]['theta'], frame_state_vector[1]['w'], frame_state_vector[1]['acceleration']])
+
+            print(self.pocket_list)
             return frame_state_vector
         else:
             return None
@@ -314,3 +321,9 @@ class StateVector:
             return "9"
         elif index == 37:
             return "28"
+
+    @staticmethod
+    def initial_pred(init_differentials):
+        with open(save_path + '.txt', 'a') as file:
+                        #file.write(json.dumps(frame_detections, separators=(',', ':')) + "\n")
+                        file.write(json.dumps(output, separators=(',', ':')) + "\n")

@@ -2,6 +2,7 @@ import numpy as np
 import json
 import torch
 import operator
+import statistics
 
 
 class StateVector:
@@ -323,7 +324,7 @@ class StateVector:
             return "28"
 
     @staticmethod
-    def initial_pred(init_differentials):
-        with open(save_path + '.txt', 'a') as file:
-                        #file.write(json.dumps(frame_detections, separators=(',', ':')) + "\n")
-                        file.write(json.dumps(output, separators=(',', ':')) + "\n")
+    def most_freq_pocket(pocket_list):
+        res = statistics.mode(pocket_list)
+        return res
+

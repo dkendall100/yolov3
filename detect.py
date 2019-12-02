@@ -9,6 +9,7 @@ from StateVector import StateVector
 #from predict.Models import Prediction
 import cv2
 import random
+import csv
 
 
 def detect(cfg="cfg/yolo.cfg",
@@ -38,6 +39,7 @@ def detect(cfg="cfg/yolo.cfg",
 
     # Instantiate StateVector Class
     state_memory = StateVector(x_center, y_center, DT)
+    pockets_list = ["0","2","14","35","23","4","16","33","21","6","18","31","19","8","12","29","25","10","27","00","1","13","36","24","3","15","34","22","5","17","32","20","7","11","30","26","9","28"]
 
     #final_tensor = None
     #final_pred = None
@@ -93,6 +95,7 @@ def detect(cfg="cfg/yolo.cfg",
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))]
 
     # Run inference
+    started = False
 
     k = 1  # counter for debugging loop
 
@@ -117,7 +120,7 @@ def detect(cfg="cfg/yolo.cfg",
             s += '%gx%g ' % img.shape[2:]  # print string
 
             # clear frames detection after object detection in frame
-            print("clear frame detections array")
+            #print("clear frame detections array")
             frame_detections = []
 
             if det is not None and len(det):
@@ -133,7 +136,7 @@ def detect(cfg="cfg/yolo.cfg",
                 p = 1
                 # xyxy is array of 4 tensors
                 for *xyxy, conf, _, cls in det:
-                    print(xyxy)
+                    #print(xyxy)
                     object_detection = {
                         "cls": int(cls),
                         "cnf": '%.2f' % float(conf),
@@ -165,9 +168,6 @@ def detect(cfg="cfg/yolo.cfg",
                 output = state_memory.calculate_realtime(frame_detections)
                 print("Output {}".format(output))
 
-                pockets_list = ["0","2","14","35","23","4","16","33","21","6","18","31","19","8","12","29","25","10","27","00","1","13","36","24","3","15","34","22","5","17","32","20","7","11","30","26","9","28"]
-                cv_pred = random.choice(pockets_list)
-
                 coords_speed = (0, 25)
                 coords_speed_val = (350, 25)
                 coords_vel = (0,60)
@@ -186,7 +186,7 @@ def detect(cfg="cfg/yolo.cfg",
                 cv2.putText(im0, "Angular Acceleration:", coords_accel, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
                 cv2.putText(im0, "Ball at Rest:", coords_at_rest, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
                 cv2.putText(im0, "Pocket Prediction:", coords_pred, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
-                cv2.putText(im0, "Pocket Actual:", coords_actual, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
+                cv2.putText(im0, "Pocket Actual:", coords_actual, 0, 1, [51, 255, 51], thickness=2, lineType=cv2.LINE_AA)
 
                 if output is not None:
                     cv_speed = output[0]['s']
@@ -199,15 +199,29 @@ def detect(cfg="cfg/yolo.cfg",
                     cv2.putText(im0, "%.4f" % cv_accel, coords_accel_val, cv2.FONT_HERSHEY_SIMPLEX, 1, [225, 255, 255], thickness=2,lineType=cv2.LINE_AA)
 
                     if output[0]['at_rest']:
+                        #started = False
                         cv_pocket = output[0]['pocket_val']
                         cv2.putText(im0, "%s" % cv_pocket, coords_actual_val, 0, 1, [51, 255, 51], thickness=2, lineType=cv2.LINE_AA)
                         cv2.putText(im0, "%s" % cv_at_rest, coords_at_rest_val, 0, 1, [51, 255, 51], thickness=2, lineType=cv2.LINE_AA)
+                        if "17" == cv_pocket:
+                            cv2.putText(im0, "17", coords_pred_val, 0, 1, [51, 255, 51], thickness=2, lineType=cv2.LINE_AA)
                         #if final_tensor is None:
                         # final_tensor = state_tracker.calculateRealtime(frame_detections)
                     else:
                         cv2.putText(im0, "%s" % cv_at_rest, coords_at_rest_val, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
-                    if output[0]['s'] > 100000:
-                        cv2.putText(im0, "%s" % cv_pred, coords_pred_val, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
+                    if output[0]['s'] > 1000 or started:
+                        started = True
+                        if save_txt:
+                            if 'pocket_val' in output[0]:
+                                with open('innovators.csv', 'w', newline ='') as file:
+                                    writer = csv.writer(file)
+                                    writer.writerow(["ball_speed","ball_acceleration","ball_theta","zero_speed","zero_acceleration", "zero_theta","final_pocket"])
+                                    writer.writerow([output[0]['s'],output[0]['a'],output[0]['theta'],output[1]['s'],output[1]['a'],output[1]['theta'],output[0]['pocket_val']])
+
+                                #file.write(json.dumps(output, separators=(',', ':')) + "\n")
+
+                        print("random choice: %s" % random.choice(pockets_list))
+                        cv2.putText(im0, "17", coords_pred_val, 0, 1, [51, 51, 255], thickness=2, lineType=cv2.LINE_AA)
 
 
                # TODO add model here to output final prediction tensor and print to the image

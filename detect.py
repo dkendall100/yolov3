@@ -139,7 +139,6 @@ def detect(cfg="cfg/yolo.cfg",
                     s += '%g %ss, ' % (n, classes[int(c)])  # add to string
 
                 # Write results
-                p = 1
                 # xyxy is array of 4 tensors
                 for *xyxy, conf, _, cls in det:
                     #print(xyxy)
@@ -156,7 +155,6 @@ def detect(cfg="cfg/yolo.cfg",
                         #print("INNER loop detection: %i for cls: %i, conf: %.2f, x: %i, y: %i" % (p,int(cls),float(conf),(int(xyxy[0])+int(xyxy[2]))/2,(int(xyxy[1])+int(xyxy[3]))/2))
                     #else:
                         #p = 0
-                    p = p + 1
                     print("t0 of obj detect: {}".format(t0))
                     print("t of obj detect: {}".format(t))
                     print("time.time() of obj detect: {}".format(time.time()))
@@ -272,7 +270,11 @@ def detect(cfg="cfg/yolo.cfg",
 
             # Stream results
             if stream_img:
-                cv2.imshow(p, im0)
+                try:
+                    cv2.imshow(str(p), im0)
+                except Exception as ex:
+                    print(ex)
+
 
             # Save results (image with detections)
             if save_img:

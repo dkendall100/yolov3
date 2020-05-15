@@ -52,7 +52,7 @@ def detect(cfg="cfg/yolo.cfg",
 
             if self.final_tensor is not None:
 
-                self.final_pred = self.predictor(self.final_tensor)
+                self.final_pred = self.predictor.eval_norm(self.final_tensor)
                 f_pred = float(self.final_pred)
 
                 if f_pred < 0:

@@ -122,6 +122,7 @@ class LoadWebcam:  # for inference
     def __init__(self, pipe=0, img_size=416, half=False):
         self.img_size = img_size
         self.half = half  # half precision fp16 images
+        self.mode = 'webcam'
 
         if pipe == '0':
             pipe = 0  # local camera
@@ -139,7 +140,11 @@ class LoadWebcam:  # for inference
 
         self.pipe = pipe
         self.cap = cv2.VideoCapture(pipe)  # video capture object
-        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)  # set buffer size
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 4)  # set buffer size
+        self.cap.set(cv2.CAP_PROP_BRIGHTNESS, 60)
+        self.cap.set(cv2.CAP_PROP_EXPOSURE, -50)
+        self.cap.set(cv2.CAP_PROP_FPS, 30)
+        # self.cap.set(cv2.CAP_PROP_CONTRAST, 100)
 
     def __iter__(self):
         self.count = -1
@@ -155,7 +160,7 @@ class LoadWebcam:  # for inference
         # Read frame
         if self.pipe == 0:  # local camera
             ret_val, img0 = self.cap.read()
-            img0 = cv2.flip(img0, 1)  # flip left-right
+            #  img0 = cv2.flip(img0, 1)  # flip left-right
         else:  # IP camera
             n = 0
             while True:
